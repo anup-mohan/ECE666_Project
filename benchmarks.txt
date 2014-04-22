@@ -1,0 +1,30 @@
+-----SPLASH-2---------------------------------
+RADIX 1M Integers, radix 1024
+LU 512x512 matrix, 16x16 blocks
+BARNES 16K particles
+OCEAN 258x258 ocean
+WATER-SPATIAL 512 molecules
+RAYTRACE car
+
+-----PARSEC---------------------------------
+blackscholes 64K options
+streamcluster 8192 points per block, 1 block
+dedup 31 MB data
+bodytrack 2 frames, 2000 particles
+fluidanimate 5 frames, 100,000 particles
+canneal 200,000 elements
+
+-----PARALLEL MI BENCH---------------------------------
+dijkstra-single-source Graph with 4096 nodes
+dijkstra-all-pairs Graph with 512 nodes
+patricia 5000 IP address queries
+susan PGM picture 2.8 MB
+
+-----UHPC---------------------------------
+connected-components Graph with 2^18 nodes
+community-detection Graph with 2^16 nodes
+
+-----UHPC---------------------------------
+tsp 16 cities
+dfs Graph with 876800 nodes
+matrix-multiply 512x512 matrix
