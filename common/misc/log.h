@@ -31,9 +31,9 @@ class Log
       bool isLoggingEnabled();
       std::string getModule(const char *filename);
 
-   private:
       UInt64 getTimestamp();
 
+   private:
       void initFileDescriptors();
       static void parseModules(std::set<std::string> &mods, std::string list);
       void getDisabledModules();

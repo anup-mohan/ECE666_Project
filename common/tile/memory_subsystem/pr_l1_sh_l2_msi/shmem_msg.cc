@@ -17,6 +17,8 @@ ShmemMsg::ShmemMsg()
    , _data_buf(NULL)
    , _data_length(0)
    , _modeled(false)
+   , _pvt_util(0)
+   , _least_lat(0)
 {}
 
 ShmemMsg::ShmemMsg(Type msg_type
@@ -36,6 +38,8 @@ ShmemMsg::ShmemMsg(Type msg_type
    , _data_buf(NULL)
    , _data_length(0)
    , _modeled(modeled)
+   , _pvt_util(0)
+   , _least_lat(0)
 {}
 
 ShmemMsg::ShmemMsg(Type msg_type
@@ -57,6 +61,76 @@ ShmemMsg::ShmemMsg(Type msg_type
    , _data_buf(data_buf)
    , _data_length(data_length)
    , _modeled(modeled)
+   , _pvt_util(0)
+   , _least_lat(0)
+{}
+
+ShmemMsg::ShmemMsg(Type msg_type
+                  , MemComponent::Type sender_mem_component
+                  , MemComponent::Type receiver_mem_component
+                  , tile_id_t requester
+                  , bool reply_expected
+                  , IntPtr address
+                  , bool modeled
+                  , UInt64 least_lat
+                  )
+   : _msg_type(msg_type)
+   , _sender_mem_component(sender_mem_component)
+   , _receiver_mem_component(receiver_mem_component)
+   , _requester(requester)
+   , _reply_expected(reply_expected)
+   , _address(address)
+   , _data_buf(NULL)
+   , _data_length(0)
+   , _modeled(modeled)
+   , _pvt_util(0)
+   , _least_lat(least_lat)
+{}
+
+ShmemMsg::ShmemMsg(Type msg_type
+                  , MemComponent::Type sender_mem_component
+                  , MemComponent::Type receiver_mem_component
+                  , tile_id_t requester
+                  , bool reply_expected
+                  , IntPtr address
+                  , bool modeled
+                  , SInt32 pvt_util
+                  )
+   : _msg_type(msg_type)
+   , _sender_mem_component(sender_mem_component)
+   , _receiver_mem_component(receiver_mem_component)
+   , _requester(requester)
+   , _reply_expected(reply_expected)
+   , _address(address)
+   , _data_buf(NULL)
+   , _data_length(0)
+   , _modeled(modeled)
+   , _pvt_util(pvt_util)
+   , _least_lat(0)
+{}
+
+ShmemMsg::ShmemMsg(Type msg_type
+                  , MemComponent::Type sender_mem_component
+                  , MemComponent::Type receiver_mem_component
+                  , tile_id_t requester
+                  , bool reply_expected
+                  , IntPtr address
+                  , Byte* data_buf
+                  , UInt32 data_length
+                  , bool modeled
+                  , SInt32 pvt_util
+                  )
+   : _msg_type(msg_type)
+   , _sender_mem_component(sender_mem_component)
+   , _receiver_mem_component(receiver_mem_component)
+   , _requester(requester)
+   , _reply_expected(reply_expected)
+   , _address(address)
+   , _data_buf(data_buf)
+   , _data_length(data_length)
+   , _modeled(modeled)
+   , _pvt_util(pvt_util)
+   , _least_lat(0)
 {}
 
 ShmemMsg::ShmemMsg(const ShmemMsg* shmem_msg)
@@ -142,6 +216,57 @@ ShmemMsg::getModeledLength()
    default:
       LOG_PRINT_ERROR("Unrecognized Msg Type(%u)", _msg_type);
       return 0;
+   }
+}
+
+string
+ShmemMsg::getName(Type type)
+{
+   switch (type)
+   {
+   case INVALID_MSG_TYPE:
+      return "INVALID_MSG_TYPE";
+   case MIN_MSG_TYPE:
+      return "MIN_MSG_TYPE or EX_REQ";
+   //case EX_REQ:
+   //   return "EX_REQ";
+   case SH_REQ:
+      return "SH_REQ";
+   case INV_REQ:
+      return "INV_REQ";
+   case FLUSH_REQ:
+      return "FLUSH_REQ";
+   case WB_REQ:
+      return "WB_REQ";
+   case EX_REP:
+      return "EX_REP";
+   case SH_REP:
+      return "SH_REP";
+   case UPGRADE_REP:
+      return "UPGRADE_REP";
+   case INV_REP:
+      return "INV_REP";
+   case FLUSH_REP:
+      return "FLUSH_REP";
+   case WB_REP:
+      return "WB_REP";
+   case WORD_XFER_REP:
+      return "WORD_XFER_REP";
+   case DRAM_FETCH_REQ:
+      return "DRAM_FETCH_REQ";
+   case DRAM_STORE_REQ:
+      return "DRAM_STORE_REQ";
+   case DRAM_FETCH_REP:
+      return "DRAM_FETCH_REP";
+   case NULLIFY_REQ:
+      return "NULLIFY_REQ or MAX_MSG_TYPE";
+   //case MAX_MSG_TYPE:
+   //   return "MAX_MSG_TYPE";
+   //case NUM_MSG_TYPES:
+   //   return "NUM_MSG_TYPES";
+   default:
+      LOG_PRINT_ERROR("Unrecognized shmem msg type(%u)", type);
+      return "";
    }
 }
 

@@ -1,3 +1,4 @@
+#include <cstring>
 #include "l1_cache_cntlr.h"
 #include "memory_manager.h"
 #include "config.h"
@@ -27,6 +28,7 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
                            bool L1_dcache_track_miss_types)
    : _memory_manager(memory_manager)
    , _L2_cache_home_lookup(L2_cache_home_lookup)
+   , _direct_data_valid(false)
 {
    _L1_icache_replacement_policy_obj = 
       CacheReplacementPolicy::create(L1_icache_replacement_policy, L1_icache_size, L1_icache_associativity, cache_line_size);
@@ -90,9 +92,16 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
    bool L1_cache_hit = true;
    UInt32 access_num = 0;
+   Cache* l1cache;
+   CacheLineInfo* L1_cache_line_info;
 
    // Core synchronization delay
    getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(CORE));
+
+   if (mem_component == MemComponent::L1_ICACHE)
+      l1cache = _L1_icache;
+   else
+      l1cache = _L1_dcache;
 
    while(1)
    {
@@ -105,6 +114,15 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
          _memory_manager->wakeUpSimThread();
       }
 
+      // LAACCP
+      if (_direct_data_valid)
+      {
+         LOG_PRINT("_direct_data is valid, address(%#llx)", ca_address);
+         memcpy(data_buf, _direct_data, getCacheLineSize());
+         _direct_data_valid = false;
+         return L1_cache_hit;
+      }
+
       pair<bool, Cache::MissType> cache_miss_info = operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num);
       bool cache_hit = !cache_miss_info.first;
       if (cache_hit)
@@ -114,7 +132,11 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
          _memory_manager->incrCurrTime(mem_component, CachePerfModel::ACCESS_DATA_AND_TAGS);
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
-                 
+
+         l1cache->getCacheLineInfo(ca_address, L1_cache_line_info);
+         L1_cache_line_info->incrPvtUtil();
+         L1_cache_line_info->setLat(Log::getSingleton()->getTimestamp());
+
          return L1_cache_hit;
       }
 
@@ -132,7 +154,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
       ShmemMsg shmem_msg(shmem_msg_type, MemComponent::CORE, mem_component,
                          getTileId(), false, ca_address,
-                         msg_modeled);
+                         msg_modeled, l1cache->getLeastLat(ca_address));
       _memory_manager->sendMsg(getTileId(), shmem_msg);
 
       // Wait for the sim thread
@@ -258,7 +280,7 @@ L1CacheCntlr::insertCacheLine(MemComponent::Type mem_component, IntPtr address, 
          ShmemMsg send_shmem_msg(ShmemMsg::FLUSH_REP, mem_component, MemComponent::L2_CACHE,
                                  getTileId(), false, evicted_address,
                                  writeback_buf, getCacheLineSize(),
-                                 msg_modeled);
+                                 msg_modeled, evicted_cache_line_info.getPvtUtil());
          _memory_manager->sendMsg(L2_cache_home, send_shmem_msg);
       }
       else
@@ -267,7 +289,7 @@ L1CacheCntlr::insertCacheLine(MemComponent::Type mem_component, IntPtr address, 
                           evicted_address, evicted_cstate);
          ShmemMsg send_shmem_msg(ShmemMsg::INV_REP, mem_component, MemComponent::L2_CACHE,
                                  getTileId(), false, evicted_address,
-                                 msg_modeled);
+                                 msg_modeled, evicted_cache_line_info.getPvtUtil());
          _memory_manager->sendMsg(L2_cache_home, send_shmem_msg);
       }
    }
@@ -322,6 +344,9 @@ L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       break;
    case ShmemMsg::UPGRADE_REP:
       processUpgradeRepFromL2Cache(sender, shmem_msg);
+      break;
+   case ShmemMsg::WORD_XFER_REP:
+      processWordXferFromL2Cache(sender, shmem_msg);
       break;
    case ShmemMsg::INV_REQ:
       processInvReqFromL2Cache(sender, shmem_msg);
@@ -386,6 +411,18 @@ L1CacheCntlr::processShRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 }
 
 void
+L1CacheCntlr::processWordXferFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
+{
+   IntPtr address = shmem_msg->getAddress();
+   Byte* data_buf = shmem_msg->getDataBuf();
+
+   assert(address == _outstanding_shmem_msg.getAddress());
+   assert(_direct_data_valid == false);
+   memcpy(_direct_data, data_buf, getCacheLineSize());
+   _direct_data_valid = true;
+}
+
+void
 L1CacheCntlr::processUpgradeRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
    IntPtr address = shmem_msg->getAddress();
@@ -432,7 +469,7 @@ L1CacheCntlr::processInvReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       
       ShmemMsg send_shmem_msg(ShmemMsg::INV_REP, mem_component, MemComponent::L2_CACHE,
                               shmem_msg->getRequester(), shmem_msg->isReplyExpected(), address,
-                              shmem_msg->isModeled());
+                              shmem_msg->isModeled(), L1_cache_line_info.getPvtUtil());
       _memory_manager->sendMsg(sender, send_shmem_msg);
    }
    else
@@ -478,7 +515,7 @@ L1CacheCntlr::processFlushReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       ShmemMsg send_shmem_msg(ShmemMsg::FLUSH_REP, MemComponent::L1_DCACHE, MemComponent::L2_CACHE,
                               shmem_msg->getRequester(), false, address,
                               data_buf, getCacheLineSize(),
-                              shmem_msg->isModeled());
+                              shmem_msg->isModeled(), L1_cache_line_info.getPvtUtil());
       _memory_manager->sendMsg(sender, send_shmem_msg);
    }
    else
@@ -525,7 +562,7 @@ L1CacheCntlr::processWbReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       ShmemMsg send_shmem_msg(ShmemMsg::WB_REP, MemComponent::L1_DCACHE, MemComponent::L2_CACHE,
                               shmem_msg->getRequester(), false, address,
                               data_buf, getCacheLineSize(),
-                              shmem_msg->isModeled());
+                              shmem_msg->isModeled(), L1_cache_line_info.getPvtUtil());
       _memory_manager->sendMsg(sender, send_shmem_msg);
    }
    else

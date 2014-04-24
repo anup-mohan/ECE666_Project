@@ -107,6 +107,9 @@ MemoryManager::MemoryManager(Tile* tile)
       per_dram_controller_bandwidth = Sim()->getCfg()->getFloat("dram/per_controller_bandwidth");
       dram_queue_model_enabled = Sim()->getCfg()->getBool("dram/queue_model/enabled");
       dram_queue_model_type = Sim()->getCfg()->getString("dram/queue_model/type");
+
+      // LAACCP
+      _pct = Sim()->getCfg()->getFloat("laaccp/pct");
    }
    catch(...)
    {
@@ -222,10 +225,10 @@ MemoryManager::handleMsgFromNetwork(NetPacket& packet)
    MemComponent::Type receiver_mem_component = shmem_msg->getReceiverMemComponent();
    MemComponent::Type sender_mem_component = shmem_msg->getSenderMemComponent();
 
-   LOG_PRINT("Time(%llu), Got Shmem Msg: type(%i), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), "
+   LOG_PRINT("Time(%llu), Got Shmem Msg: type(%s), address(%#lx), sender_mem_component(%s), receiver_mem_component(%s), "
              "sender(%i,%i), receiver(%i,%i), modeled(%s)", 
-             msg_time.toNanosec(), shmem_msg->getType(), shmem_msg->getAddress(),
-             sender_mem_component, receiver_mem_component,
+             msg_time.toNanosec(), ShmemMsg::getName(shmem_msg->getType()).c_str(), shmem_msg->getAddress(),
+             MemComponent::getName(sender_mem_component).c_str(), MemComponent::getName(receiver_mem_component).c_str(),
              sender.tile_id, sender.core_type, packet.receiver.tile_id, packet.receiver.core_type,
              shmem_msg->isModeled() ? "TRUE" : "FALSE");
 
@@ -303,10 +306,10 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
    Byte* msg_buf = shmem_msg.makeMsgBuf();
    Time msg_time = getShmemPerfModel()->getCurrTime();
 
-   LOG_PRINT("Time(%llu), Sending Msg: type(%u), address(%#lx), sender_mem_component(%u), receiver_mem_component(%u), "
+   LOG_PRINT("Time(%llu), Sending Msg: type(%s), address(%#lx), sender_mem_component(%s), receiver_mem_component(%s), "
              "requester(%i), sender(%i), receiver(%i), modeled(%s)",
-             msg_time.toNanosec(), shmem_msg.getType(), shmem_msg.getAddress(),
-             shmem_msg.getSenderMemComponent(), shmem_msg.getReceiverMemComponent(),
+             msg_time.toNanosec(), ShmemMsg::getName(shmem_msg.getType()).c_str(), shmem_msg.getAddress(),
+             MemComponent::getName(shmem_msg.getSenderMemComponent()).c_str(), MemComponent::getName(shmem_msg.getReceiverMemComponent()).c_str(),
              shmem_msg.getRequester(), getTile()->getId(), receiver,
              shmem_msg.isModeled() ? "TRUE" : "FALSE");
 

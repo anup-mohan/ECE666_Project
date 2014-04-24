@@ -17,6 +17,7 @@ public:
    CacheLineInfo* find(IntPtr tag, UInt32* line_index = NULL);
    void insert(CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
                bool* eviction, CacheLineInfo* evicted_cache_line_info, Byte* writeback_buf);
+   UInt64 getLeastLat();
 
 private:
    CacheLineInfo** _cache_line_info_array;

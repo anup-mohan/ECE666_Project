@@ -66,6 +66,7 @@ namespace PrL1ShL2MSI
       L2CacheCntlr* _L2_cache_cntlr;
       DramCntlr* _dram_cntlr;
       bool _dram_cntlr_present;
+      int _pct;
 
       // Home Lookups
       AddressHomeLookup* _L2_cache_home_lookup;

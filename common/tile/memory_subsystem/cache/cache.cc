@@ -96,16 +96,6 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
    __attribute__((unused)) CacheLineInfo* cache_line_info = set->find(tag, &line_index);
    LOG_ASSERT_ERROR(cache_line_info, "Address(%#lx)", address);
 
-   //CKB Additions
-   CacheLineInfo* line_info = getCacheLineInfo(address);
-
-   if(!(_name.compare(string("L1-I")) && (_name.compare("L1-D"))))
-   {
-           LOG_PRINT("accessCacheLine : Increment done Name : %s",_name.c_str());
-           line_info->Incr_P_util();
-   }
-
-
    if (access_type == LOAD)
       set->read_line(line_index, line_offset, buf, num_bytes);
    else
@@ -117,15 +107,36 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
       OperationType operation_type = (access_type == LOAD) ? DATA_ARRAY_READ : DATA_ARRAY_WRITE;
       _event_counters[operation_type] ++;
    }
-   LOG_PRINT("accessCacheLine: Name:%s Address(%#lx), AccessType(%s), Num Bytes(%u) end, P_util_ctr = %08x",
-             _name.c_str(),address, (access_type == 0) ? "LOAD": "STORE", num_bytes,line_info->get_P_util_ctr());
+
+   // LAACCP
+   //if(l1_cache)
+   //{
+   //   cache_line_info->incrPvtUtil();
+   //   cache_line_info->setLat(Log::getTimestamp());
+   //   LOG_PRINT("*** timestamp[%10llu] incrementing private utilization to %d Address(%#lx), AccessType(%s)", cache_line_info.getLat(), cache_line_info->getPvtUtil(), address, (access_type == 0) ? "LOAD": "STORE");
+   //}
+   //else
+   //{
+   //   cache_line_info->setLat(requester, Log::getTimestamp());
+   //   
+   //}
+
+   LOG_PRINT("accessCacheLine: Address(%#lx), AccessType(%s), Num Bytes(%u) end",
+             address, (access_type == 0) ? "LOAD": "STORE", num_bytes);
+}
+
+UInt64
+Cache::getLeastLat(IntPtr address)
+{
+   CacheSet* set = getSet(address);
+   return set->getLeastLat();
 }
 
 void
 Cache::insertCacheLine(IntPtr inserted_address, CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
                        bool* eviction, IntPtr* evicted_address, CacheLineInfo* evicted_cache_line_info, Byte* writeback_buf)
 {
-   LOG_PRINT("insertCacheLine: Name :%s Address(%#lx) start P_util_ctr = %ld ",_name.c_str(), inserted_address,inserted_cache_line_info->get_P_util_ctr());
+   LOG_PRINT("insertCacheLine: Address(%#lx) start", inserted_address);
 
    CacheSet* set = getSet(inserted_address);
 
@@ -220,8 +231,9 @@ Cache::getCacheLineInfo(IntPtr address)
    CacheSet* set = getSet(address);
    IntPtr tag = getTag(address);
 
+   LOG_PRINT("calling set_find Address(%#lx)", address);
    CacheLineInfo* line_info = set->find(tag);
-
+   LOG_PRINT("returning line_info Address(%#lx)", address);
    return line_info;
 }
 

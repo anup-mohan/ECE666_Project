@@ -101,3 +101,15 @@ CacheSet::insert(CacheLineInfo* inserted_cache_line_info, Byte* fill_buf,
    // Update replacement policy
    _replacement_policy->update(_cache_line_info_array, _set_num, index);
 }
+
+UInt64
+CacheSet::getLeastLat()
+{
+   UInt64 least_lat = _cache_line_info_array[0]->getLat();
+   for (SInt32 index = 1; index < _associativity; index++)
+   {
+      if (_cache_line_info_array[index]->getLat() < least_lat)
+         least_lat = _cache_line_info_array[index]->getLat();
+   }
+   return least_lat;
+}

@@ -4,10 +4,11 @@
 #include "pr_l1_sh_l2_msi/cache_line_info.h"
 #include "log.h"
 
-CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate,UInt32 P_util_ctr)
+CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate, SInt32 pvt_util, UInt64 lat)
    : _tag(tag)
    , _cstate(cstate)
-   , _P_util_ctr(P_util_ctr)
+   , _pvt_util(pvt_util)
+   , _lat(lat)
 {}
 
 CacheLineInfo::~CacheLineInfo()
@@ -38,7 +39,8 @@ CacheLineInfo::invalidate()
 {
    _tag = ~0;
    _cstate = CacheState::INVALID;
-   _P_util_ctr = 0;
+   _pvt_util = 0;
+   _lat = 0;
 }
 
 void
@@ -46,5 +48,6 @@ CacheLineInfo::assign(CacheLineInfo* cache_line_info)
 {
    _tag = cache_line_info->getTag();
    _cstate = cache_line_info->getCState();
-   _P_util_ctr = cache_line_info->get_P_util_ctr();
+   _pvt_util = cache_line_info->getPvtUtil();
+   _lat = cache_line_info->getLat();
 }

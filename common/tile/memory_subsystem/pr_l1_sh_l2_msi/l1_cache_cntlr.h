@@ -71,6 +71,10 @@ namespace PrL1ShL2MSI
       CacheHashFn* _L1_dcache_hash_fn_obj;
       AddressHomeLookup* _L2_cache_home_lookup;
 
+      // LAACCP
+      Byte* _direct_data;
+      bool _direct_data_valid;
+
       // Outstanding msg info
       Time _outstanding_shmem_msg_time;
       ShmemMsg _outstanding_shmem_msg;
@@ -97,6 +101,7 @@ namespace PrL1ShL2MSI
       void processExRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
       void processShRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
       void processUpgradeRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
+      void processWordXferFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
       void processInvReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
       void processFlushReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);
       void processWbReqFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg);

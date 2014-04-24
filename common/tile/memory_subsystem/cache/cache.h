@@ -90,6 +90,7 @@ public:
                         bool* eviction, IntPtr* evicted_address, CacheLineInfo* evicted_cache_line_info, Byte* writeback_buf);
    void getCacheLineInfo(IntPtr address, CacheLineInfo* cache_line_info);
    void setCacheLineInfo(IntPtr address, CacheLineInfo* updated_cache_line_info);
+   UInt64 getLeastLat(IntPtr address);
 
    // Get the tag associated with an address
    IntPtr getTag(IntPtr address) const;
