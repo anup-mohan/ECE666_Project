@@ -92,16 +92,10 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
    bool L1_cache_hit = true;
    UInt32 access_num = 0;
-   Cache* l1cache;
-   CacheLineInfo* L1_cache_line_info;
+   PrL1CacheLineInfo L1_cache_line_info;
 
    // Core synchronization delay
    getShmemPerfModel()->incrCurrTime(getL1Cache(mem_component)->getSynchronizationDelay(CORE));
-
-   if (mem_component == MemComponent::L1_ICACHE)
-      l1cache = _L1_icache;
-   else
-      l1cache = _L1_dcache;
 
    while(1)
    {
@@ -134,11 +128,12 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
          LOG_PRINT("cache hit! getting cache line info, address(%#llx)", ca_address);
-         l1cache->getCacheLineInfo(ca_address, L1_cache_line_info);
+         getCacheLineInfo(mem_component, ca_address, &L1_cache_line_info);
          LOG_PRINT("incrementing Pvt util, address(%#llx)", ca_address);
-         L1_cache_line_info->incrPvtUtil();
+         L1_cache_line_info.incrPvtUtil();
          LOG_PRINT("setting LAT, address(%#llx)", ca_address);
-         L1_cache_line_info->setLat(Log::getSingleton()->getTimestamp());
+         L1_cache_line_info.setLat(Log::getSingleton()->getTimestamp());
+         setCacheLineInfo(mem_component, ca_address, &L1_cache_line_info);
          LOG_PRINT("returning!");
 
          return L1_cache_hit;
@@ -158,7 +153,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
       ShmemMsg shmem_msg(shmem_msg_type, MemComponent::CORE, mem_component,
                          getTileId(), false, ca_address,
-                         msg_modeled, l1cache->getLeastLat(ca_address));
+                         msg_modeled, getL1Cache(mem_component)->getLeastLat(ca_address));
       _memory_manager->sendMsg(getTileId(), shmem_msg);
 
       // Wait for the sim thread
