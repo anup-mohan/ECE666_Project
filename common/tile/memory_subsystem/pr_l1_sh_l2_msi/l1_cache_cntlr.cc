@@ -101,13 +101,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
    {
       access_num ++;
       LOG_ASSERT_ERROR((access_num == 1) || (access_num == 2), "access_num(%u)", access_num);
-
-      // Wake up the sim thread after acquiring the lock
-      if (access_num == 2)
-      {
-         _memory_manager->wakeUpSimThread();
-      }
-
+      
       // LAACCP
       if (_direct_data_valid)
       {
@@ -116,6 +110,14 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
          _direct_data_valid = false;
          return L1_cache_hit;
       }
+
+      // Wake up the sim thread after acquiring the lock
+      if (access_num == 2)
+      {
+         _memory_manager->wakeUpSimThread();
+      }
+
+
 
       pair<bool, Cache::MissType> cache_miss_info = operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num);
       bool cache_hit = !cache_miss_info.first;
@@ -138,7 +140,8 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
          return L1_cache_hit;
       }
-
+      
+    
       LOG_ASSERT_ERROR(access_num == 1, "Should find line in cache on second access");
       // Expect to find address in the L1-I/L1-D cache if there is an UNLOCK signal
       LOG_ASSERT_ERROR(lock_signal != Core::UNLOCK, "Expected to find address(%#lx) in L1 Cache", ca_address);
@@ -150,6 +153,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
       // Send out a request to the network thread for the cache data
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
+
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
       ShmemMsg shmem_msg(shmem_msg_type, MemComponent::CORE, mem_component,
                          getTileId(), false, ca_address,
@@ -418,6 +422,7 @@ L1CacheCntlr::processWordXferFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
    assert(address == _outstanding_shmem_msg.getAddress());
    assert(_direct_data_valid == false);
    memcpy(_direct_data, data_buf, getCacheLineSize());
+   LOG_PRINT("direct data valid made true\n");
    _direct_data_valid = true;
 }
 

@@ -36,23 +36,29 @@ public:
 
    Type getSharerType(tile_id_t tile) const
    { return _sharer_type_vector[tile]; }
+   vector<Type> getSharerTypeVector() const
+   { return _sharer_type_vector; }
    void setSharerType(tile_id_t tile, Type type)
    { _sharer_type_vector[tile] = type; }
 
-   SInt32 getRemoteUtil(tile_id_t core_id) const
+   vector<UInt32> getRemoteUtilVector() const
+   { return _remote_util_vector; }
+   UInt32 getRemoteUtil(tile_id_t core_id) const
    { return _remote_util_vector[core_id]; }
-   void setRemoteUtil(tile_id_t core_id, SInt32 val)
+   void setRemoteUtil(tile_id_t core_id, UInt32 val)
    { _remote_util_vector[core_id] = val; }
    void incrRemoteUtil(tile_id_t core_id)
    { _remote_util_vector[core_id]++; }
 
+   vector<UInt64> getLatVector() const
+   { return _lat_vector; }
    UInt64 getLat(tile_id_t core_id) const
    { return _lat_vector[core_id]; }
    void setLat(tile_id_t core_id, UInt64 val)
    { _lat_vector[core_id] =  val; }
 
    bool getSharerTypeList(vector<Type>& sharer_type_vector);
-   bool getRemoteUtilList(vector<SInt32>& remote_util_vector);
+   bool getRemoteUtilList(vector<UInt32>& remote_util_vector);
    bool getLatList(vector<UInt64>& lat_vector);
 
 private:
@@ -60,7 +66,7 @@ private:
    MemComponent::Type _caching_component;
 
    vector<Type> _sharer_type_vector;
-   vector<SInt32> _remote_util_vector;
+   vector<UInt32> _remote_util_vector;
    vector<UInt64> _lat_vector;
 };
 

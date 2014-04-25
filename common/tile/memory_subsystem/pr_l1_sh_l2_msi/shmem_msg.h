@@ -71,7 +71,7 @@ public:
             , bool reply_expected
             , IntPtr address
             , bool modeled
-            , SInt32 pvt_util
+            , UInt32 pvt_util
             );
    ShmemMsg(Type msg_type
             , MemComponent::Type sender_mem_component
@@ -82,7 +82,7 @@ public:
             , Byte* data_buf
             , UInt32 data_length
             , bool modeled
-            , SInt32 pvt_util
+            , UInt32 pvt_util
             );
    ShmemMsg(const ShmemMsg* shmem_msg);
    ~ShmemMsg();
@@ -105,7 +105,7 @@ public:
    UInt32 getDataLength() const                       { return _data_length; }
    bool isModeled() const                             { return _modeled; }
    UInt64 getLeastLat() const                         { return _least_lat; }
-   SInt32 getPvtUtil() const                          { return _pvt_util; }
+   UInt32 getPvtUtil() const                          { return _pvt_util; }
 
    void setMsgType(Type msg_type)                     { _msg_type = msg_type; }
    void setDataBuf(Byte* data_buf)                    { _data_buf = data_buf; }
@@ -122,7 +122,7 @@ private:
    Byte* _data_buf;
    UInt32 _data_length;
    bool _modeled;
-   SInt32 _pvt_util;
+   UInt32 _pvt_util;
    UInt64 _least_lat;
    
    static const UInt32 _num_msg_type_bits = 4;

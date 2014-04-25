@@ -10,7 +10,7 @@ class CacheLineInfo
 // This can be extended to include other information
 // for different cache coherence protocols and cache types
 public:
-   CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID, SInt32 pvt_util = 0, UInt64 lat = 0);
+   CacheLineInfo(IntPtr tag = ~0, CacheState::Type cstate = CacheState::INVALID, UInt32 pvt_util = 0, UInt64 lat = 0);
    virtual ~CacheLineInfo();
 
    static CacheLineInfo* create(CachingProtocolType caching_protocol_type, SInt32 cache_level);
@@ -18,9 +18,9 @@ public:
    virtual void invalidate();
    virtual void assign(CacheLineInfo* cache_line_info);
 
-   bool isValid() const                        
+   bool isValid() const
    { return (_tag != ((IntPtr) ~0)); }
-   IntPtr getTag() const                        
+   IntPtr getTag() const
    { return _tag; }
    CacheState::Type getCState() const           
    { return _cstate; }
@@ -30,9 +30,9 @@ public:
    void setCState(CacheState::Type cstate)      
    { _cstate = cstate; }
 
-   SInt32 getPvtUtil() const
+   UInt32 getPvtUtil() const
    { return _pvt_util; }
-   void setPvtUtil(SInt32 val)
+   void setPvtUtil(UInt32 val)
    { _pvt_util = val; }
    UInt64 getLat() const
    { return _lat; }
@@ -45,6 +45,6 @@ public:
 protected:
    IntPtr _tag;
    CacheState::Type _cstate;
-   SInt32 _pvt_util;	// private utilization counter
-   UInt64 _lat;		// last access timestamp
+   UInt32 _pvt_util;    // private utilization counter
+   UInt64 _lat;         // last access timestamp
 };

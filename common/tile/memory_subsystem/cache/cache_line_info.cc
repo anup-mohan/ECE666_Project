@@ -4,7 +4,7 @@
 #include "pr_l1_sh_l2_msi/cache_line_info.h"
 #include "log.h"
 
-CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate, SInt32 pvt_util, UInt64 lat)
+CacheLineInfo::CacheLineInfo(IntPtr tag, CacheState::Type cstate, UInt32 pvt_util, UInt64 lat)
    : _tag(tag)
    , _cstate(cstate)
    , _pvt_util(pvt_util)

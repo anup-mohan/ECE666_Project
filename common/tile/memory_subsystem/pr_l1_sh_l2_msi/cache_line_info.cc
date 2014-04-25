@@ -1,7 +1,7 @@
 #include "cache_line_info.h"
 #include "log.h"
 
-#define NUM_TILES 64
+#define NUM_TILES 66
 
 namespace PrL1ShL2MSI
 {
@@ -32,7 +32,7 @@ ShL2CacheLineInfo::ShL2CacheLineInfo(IntPtr tag, DirectoryEntry* directory_entry
    _sharer_type_vector.resize(NUM_TILES);
    _remote_util_vector.resize(NUM_TILES);
    _lat_vector.resize(NUM_TILES);
-   for(SInt32 i=0; i<NUM_TILES; i++)
+   for(UInt32 i=0; i<NUM_TILES; i++)
    {
       _sharer_type_vector[i] = ShL2CacheLineInfo::PRIVATE_SHARER;
       _remote_util_vector[i] = 0;
@@ -54,6 +54,9 @@ ShL2CacheLineInfo::assign(CacheLineInfo* cache_line_info)
    L2_cache_line_info->getSharerTypeList(_sharer_type_vector);
    L2_cache_line_info->getRemoteUtilList(_remote_util_vector);
    L2_cache_line_info->getLatList(_lat_vector);
+  // _sharer_type_vector = L2_cache_line_info->getSharerTypeVector();
+  // _remote_util_vector = L2_cache_line_info->getRemoteUtilVector();
+  // _lat_vector = L2_cache_line_info->getLatVector();
    LOG_PRINT("end L2 assigning");
 }
 
@@ -61,15 +64,17 @@ bool
 ShL2CacheLineInfo::getSharerTypeList(vector<Type>& sharer_type_vector)
 {
    for (SInt32 i = 0; i < NUM_TILES; i++)
-      sharer_type_vector.push_back((Type) _sharer_type_vector[i]);
+      sharer_type_vector[i] = _sharer_type_vector[i];
+      //sharer_type_vector.push_back((Type) _sharer_type_vector[i]);
    return true;
 }
 
 bool
-ShL2CacheLineInfo::getRemoteUtilList(vector<SInt32>& remote_util_vector)
+ShL2CacheLineInfo::getRemoteUtilList(vector<UInt32>& remote_util_vector)
 {
-   for (SInt32 i = 0; i < NUM_TILES; i++)
-      remote_util_vector.push_back((SInt32) _remote_util_vector[i]);
+   for (UInt32 i = 0; i < NUM_TILES; i++)
+      remote_util_vector[i] = _remote_util_vector[i];
+      //remote_util_vector.push_back((UInt32) _remote_util_vector[i]);
    return true;
 }
 
@@ -77,7 +82,8 @@ bool
 ShL2CacheLineInfo::getLatList(vector<UInt64>& lat_vector)
 {
    for (SInt32 i = 0; i < NUM_TILES; i++)
-      lat_vector.push_back((Type) _lat_vector[i]);
+      lat_vector[i] = _lat_vector[i];
+      //lat_vector.push_back((Type) _lat_vector[i]);
    return true;
 }
 

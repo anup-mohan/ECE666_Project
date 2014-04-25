@@ -94,7 +94,7 @@ ShmemMsg::ShmemMsg(Type msg_type
                   , bool reply_expected
                   , IntPtr address
                   , bool modeled
-                  , SInt32 pvt_util
+                  , UInt32 pvt_util
                   )
    : _msg_type(msg_type)
    , _sender_mem_component(sender_mem_component)
@@ -118,7 +118,7 @@ ShmemMsg::ShmemMsg(Type msg_type
                   , Byte* data_buf
                   , UInt32 data_length
                   , bool modeled
-                  , SInt32 pvt_util
+                  , UInt32 pvt_util
                   )
    : _msg_type(msg_type)
    , _sender_mem_component(sender_mem_component)

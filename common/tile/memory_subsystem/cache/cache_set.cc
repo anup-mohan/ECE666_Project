@@ -108,7 +108,7 @@ UInt64
 CacheSet::getLeastLat()
 {
    UInt64 least_lat = _cache_line_info_array[0]->getLat();
-   for (SInt32 index = 1; index < _associativity; index++)
+   for (UInt32 index = 1; index < _associativity; index++)
    {
       if (_cache_line_info_array[index]->getLat() < least_lat)
          least_lat = _cache_line_info_array[index]->getLat();
