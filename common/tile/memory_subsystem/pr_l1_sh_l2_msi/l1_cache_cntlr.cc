@@ -133,9 +133,13 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
+         LOG_PRINT("cache hit! getting cache line info, address(%#llx)", ca_address);
          l1cache->getCacheLineInfo(ca_address, L1_cache_line_info);
+         LOG_PRINT("incrementing Pvt util, address(%#llx)", ca_address);
          L1_cache_line_info->incrPvtUtil();
+         LOG_PRINT("setting LAT, address(%#llx)", ca_address);
          L1_cache_line_info->setLat(Log::getSingleton()->getTimestamp());
+         LOG_PRINT("returning!");
 
          return L1_cache_hit;
       }

@@ -634,7 +634,7 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
                {
                   LOG_PRINT("*** core %u is REMOTE sharer", requester);
                   readCacheLineAndSendToL1Cache(ShmemMsg::WORD_XFER_REP, address, requester_mem_component, data_buf, requester, msg_modeled);
-                  if (L2_cache_line_info.getLat() >= shmem_req->getShmemMsg()->getLeastLat())
+                  if (L2_cache_line_info.getLat(requester) >= shmem_req->getShmemMsg()->getLeastLat())
                   {
                      L2_cache_line_info.incrRemoteUtil(requester);
                      LOG_PRINT("*** remote util incremented to %d", L2_cache_line_info.getRemoteUtil(requester));
@@ -644,7 +644,7 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
                      L2_cache_line_info.setRemoteUtil(requester,1);
                      LOG_PRINT("*** remote util reset to 1");
                   }
-                  L2_cache_line_info.setLat(Log::getSingleton()->getTimestamp());
+                  L2_cache_line_info.setLat(requester, Log::getSingleton()->getTimestamp());
                }
                else // Read the cache-line from the L2 cache and send it to L1
                   readCacheLineAndSendToL1Cache(ShmemMsg::SH_REP, address, requester_mem_component, data_buf, requester, msg_modeled);

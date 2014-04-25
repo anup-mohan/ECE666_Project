@@ -63,9 +63,11 @@ CacheSet::find(IntPtr tag, UInt32* line_index)
       {
          if (line_index != NULL)
             *line_index = index;
+         LOG_PRINT("returning line info for index=%d", index);
          return (_cache_line_info_array[index]);
       }
    }
+   LOG_PRINT("returning NULL");
    return NULL;
 }
 

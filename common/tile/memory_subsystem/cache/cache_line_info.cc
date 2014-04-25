@@ -46,8 +46,10 @@ CacheLineInfo::invalidate()
 void
 CacheLineInfo::assign(CacheLineInfo* cache_line_info)
 {
+   LOG_PRINT("assigning");
    _tag = cache_line_info->getTag();
    _cstate = cache_line_info->getCState();
    _pvt_util = cache_line_info->getPvtUtil();
    _lat = cache_line_info->getLat();
+   LOG_PRINT("end assigning");
 }
