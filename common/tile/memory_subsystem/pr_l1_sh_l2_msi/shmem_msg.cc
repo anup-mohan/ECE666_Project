@@ -14,6 +14,7 @@ ShmemMsg::ShmemMsg()
    , _requester(INVALID_TILE_ID)
    , _reply_expected(false)
    , _address(INVALID_ADDRESS)
+   , _offset(0)
    , _data_buf(NULL)
    , _data_length(0)
    , _modeled(false)
@@ -35,6 +36,7 @@ ShmemMsg::ShmemMsg(Type msg_type
    , _requester(requester)
    , _reply_expected(reply_expected)
    , _address(address)
+   , _offset(0)
    , _data_buf(NULL)
    , _data_length(0)
    , _modeled(modeled)
@@ -58,6 +60,7 @@ ShmemMsg::ShmemMsg(Type msg_type
    , _requester(requester)
    , _reply_expected(reply_expected)
    , _address(address)
+   , _offset(0)
    , _data_buf(data_buf)
    , _data_length(data_length)
    , _modeled(modeled)
@@ -80,6 +83,7 @@ ShmemMsg::ShmemMsg(Type msg_type
    , _requester(requester)
    , _reply_expected(reply_expected)
    , _address(address)
+   , _offset(0)
    , _data_buf(NULL)
    , _data_length(0)
    , _modeled(modeled)
@@ -93,6 +97,7 @@ ShmemMsg::ShmemMsg(Type msg_type
                   , tile_id_t requester
                   , bool reply_expected
                   , IntPtr address
+                  , UInt32 offset
                   , Byte* data_buf
                   , UInt32 data_length
                   , bool modeled
@@ -104,6 +109,7 @@ ShmemMsg::ShmemMsg(Type msg_type
    , _requester(requester)
    , _reply_expected(reply_expected)
    , _address(address)
+   , _offset(offset)
    , _data_buf(data_buf)
    , _data_length(data_length)
    , _modeled(modeled)
@@ -126,6 +132,7 @@ ShmemMsg::ShmemMsg(Type msg_type
    , _requester(requester)
    , _reply_expected(reply_expected)
    , _address(address)
+   , _offset(0)
    , _data_buf(NULL)
    , _data_length(0)
    , _modeled(modeled)
@@ -150,6 +157,7 @@ ShmemMsg::ShmemMsg(Type msg_type
    , _requester(requester)
    , _reply_expected(reply_expected)
    , _address(address)
+   , _offset(0)
    , _data_buf(data_buf)
    , _data_length(data_length)
    , _modeled(modeled)
@@ -174,6 +182,7 @@ ShmemMsg::clone(const ShmemMsg* shmem_msg)
    _requester = shmem_msg->getRequester();
    _reply_expected = shmem_msg->isReplyExpected();
    _address = shmem_msg->getAddress();
+   _offset = shmem_msg->getOffset();
    _data_buf = shmem_msg->getDataBuf();
    _data_length = shmem_msg->getDataLength();
    _modeled = shmem_msg->isModeled();
@@ -278,6 +287,8 @@ ShmemMsg::getName(Type type)
       return "WB_REP";
    case WORD_XFER_REP:
       return "WORD_XFER_REP";
+   case EMPTY_REP:
+      return "EMPTY_REP";
    case DRAM_FETCH_REQ:
       return "DRAM_FETCH_REQ";
    case DRAM_STORE_REQ:

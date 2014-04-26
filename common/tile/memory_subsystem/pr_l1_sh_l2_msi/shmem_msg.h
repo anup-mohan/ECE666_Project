@@ -26,6 +26,7 @@ public:
       FLUSH_REP,
       WB_REP,
       WORD_XFER_REP,
+      EMPTY_REP,
       // Dram requests
       DRAM_FETCH_REQ,
       DRAM_STORE_REQ,
@@ -70,6 +71,7 @@ public:
             , tile_id_t requester
             , bool reply_expected
             , IntPtr address
+            , UInt32 offset
             , Byte* data_buf
             , UInt32 data_length
             , bool modeled
@@ -112,6 +114,7 @@ public:
    tile_id_t getRequester() const                     { return _requester; }
    bool isReplyExpected() const                       { return _reply_expected; }
    IntPtr getAddress() const                          { return _address; }
+   UInt32 getOffset() const                           { return _offset; }
    Byte* getDataBuf() const                           { return _data_buf; }
    UInt32 getDataLength() const                       { return _data_length; }
    bool isModeled() const                             { return _modeled; }
@@ -130,6 +133,7 @@ private:
    tile_id_t _requester;
    bool _reply_expected;
    IntPtr _address;
+   UInt32 _offset;
    Byte* _data_buf;
    UInt32 _data_length;
    bool _modeled;

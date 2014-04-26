@@ -131,12 +131,10 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
          getCacheLineInfo(mem_component, ca_address, &L1_cache_line_info);
-         //LOG_PRINT("incrementing Pvt util, address(%#llx)", ca_address);
          L1_cache_line_info.incrPvtUtil();
-         //LOG_PRINT("setting LAT, address(%#llx)", ca_address);
          L1_cache_line_info.setLat(Log::getSingleton()->getTimestamp());
          setCacheLineInfo(mem_component, ca_address, &L1_cache_line_info);
-         //LOG_PRINT("returning!");
+
          LOG_PRINT("cache hit! address(%#llx) new pvt_util(%u), new lat(%llu)",
                    ca_address, L1_cache_line_info.getPvtUtil(), L1_cache_line_info.getLat());
 
@@ -156,7 +154,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
       ShmemMsg shmem_msg(shmem_msg_type, MemComponent::CORE, mem_component,
-                         getTileId(), false, ca_address, data_buf, data_length
+                         getTileId(), false, ca_address, offset, data_buf, data_length,
                          msg_modeled, getL1Cache(mem_component)->getLeastLat(ca_address));
       _memory_manager->sendMsg(getTileId(), shmem_msg);
 
@@ -320,8 +318,9 @@ L1CacheCntlr::handleMsgFromCore(ShmemMsg* shmem_msg)
    IntPtr address = shmem_msg->getAddress();
    // Send msg out to L2 cache
    ShmemMsg send_shmem_msg(shmem_msg->getType(), shmem_msg->getReceiverMemComponent(), MemComponent::L2_CACHE,
-                           shmem_msg->getRequester(), false, address, data_buf, data_length
-                           shmem_msg->isModeled());
+                           shmem_msg->getRequester(), false, address, shmem_msg->getOffset(),
+                           shmem_msg->getDataBuf(), shmem_msg->getDataLength(), shmem_msg->isModeled(),
+                           shmem_msg->getLeastLat());
    tile_id_t receiver = _L2_cache_home_lookup->getHome(address);
    _memory_manager->sendMsg(receiver, send_shmem_msg);
 }
@@ -351,6 +350,9 @@ L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
    case ShmemMsg::WORD_XFER_REP:
       processWordXferFromL2Cache(sender, shmem_msg);
       break;
+   case ShmemMsg::EMPTY_REP:
+      // do nothing
+      break;
    case ShmemMsg::INV_REQ:
       processInvReqFromL2Cache(sender, shmem_msg);
       break;
@@ -366,7 +368,8 @@ L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
    }
 
    if ((shmem_msg_type == ShmemMsg::EX_REP) || (shmem_msg_type == ShmemMsg::SH_REP) ||
-       (shmem_msg_type == ShmemMsg::UPGRADE_REP) || (shmem_msg_type == ShmemMsg::WORD_XFER_REP))
+       (shmem_msg_type == ShmemMsg::UPGRADE_REP) || (shmem_msg_type == ShmemMsg::WORD_XFER_REP) ||
+       (shmem_msg_type == ShmemMsg::EMPTY_REP))
    {
       assert(_outstanding_shmem_msg_time <= getShmemPerfModel()->getCurrTime());
       

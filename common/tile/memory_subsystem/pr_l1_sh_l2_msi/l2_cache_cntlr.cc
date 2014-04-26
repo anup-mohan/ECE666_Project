@@ -10,7 +10,7 @@
 
 #define TYPE(shmem_req)    (shmem_req->getShmemMsg()->getType())
 #define PCT 4
-#define NUM_TILES 66
+#define NUM_TILES 64
 
 namespace PrL1ShL2MSI
 {
@@ -537,11 +537,12 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
                                    all_tiles_sharers, sharers_list,
                                    requester, msg_modeled);
 
-               // If PRIVATE_SHARER, set remote util of all remote sharers to 0
-               if (msg_modeled && L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::PRIVATE_SHARER)
+               // set remote util of all remote sharers to 0
+               if (msg_modeled)
                {
                   for(UInt32 i=0; i<NUM_TILES; i++)
                   {
+                     if ((tile_id_t)i == requester && L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::REMOTE_SHARER) continue;
                      if (L2_cache_line_info.getSharerType((tile_id_t)i) == ShL2CacheLineInfo::REMOTE_SHARER)
                         L2_cache_line_info.setRemoteUtil((tile_id_t)i,0);
                   }
@@ -565,7 +566,15 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
                }
 
                LOG_PRINT("*** EX_REQ. core %u is REMOTE sharer. writing data to cacheline. address(%#llx)", requester, address);
-               writeCacheLine(address, shmem_req->getShmemMsg()->getDataBuf());
+
+               // write data directly into L2 cache
+               _L2_cache->accessCacheLine(address + shmem_req->getShmemMsg()->getOffset(), Cache::STORE, shmem_req->getShmemMsg()->getDataBuf(), shmem_req->getShmemMsg()->getDataLength());
+               // send empty reply back to L1
+               ShmemMsg shmem_msg(ShmemMsg::EMPTY_REP, MemComponent::L2_CACHE, requester_mem_component,
+                                  requester, false, address, msg_modeled);
+               _memory_manager->sendMsg(requester, shmem_msg);
+
+               //writeCacheLine(address, shmem_req->getShmemMsg()->getDataBuf());
                //readCacheLineAndSendToL1Cache(ShmemMsg::WORD_XFER_REP, address, MemComponent::L1_DCACHE, data_buf, requester, msg_modeled);
                if (L2_cache_line_info.getLat(requester) >= shmem_req->getShmemMsg()->getLeastLat())
                {
@@ -581,6 +590,16 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             }
             else // Read the cache-line from the L2 cache and send it to L1
             {
+               if (msg_modeled)
+               {
+                  // requester is PRIVATE, set ruc of all remote sharers to 0
+                  for(UInt32 i=0; i<NUM_TILES; i++)
+                  {
+                     if (L2_cache_line_info.getSharerType((tile_id_t)i) == ShL2CacheLineInfo::REMOTE_SHARER)
+                        L2_cache_line_info.setRemoteUtil((tile_id_t)i,0);
+                  }
+               }
+
                // Set caching component 
                L2_cache_line_info.setCachingComponent(MemComponent::L1_DCACHE);
 
