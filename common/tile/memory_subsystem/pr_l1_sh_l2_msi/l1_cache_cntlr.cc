@@ -30,6 +30,8 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
    , _L2_cache_home_lookup(L2_cache_home_lookup)
    , _direct_data_valid(false)
 {
+   _direct_data = new Byte(getCacheLineSize());
+
    _L1_icache_replacement_policy_obj = 
       CacheReplacementPolicy::create(L1_icache_replacement_policy, L1_icache_size, L1_icache_associativity, cache_line_size);
    _L1_dcache_replacement_policy_obj = 
@@ -87,6 +89,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
                                    Byte* data_buf, UInt32 data_length,
                                    bool modeled)
 {
+   //LOG_PRINT_MEMTRACE("%u %#llx", mem_op_type, ca_address);
    LOG_PRINT("processMemOpFromCore(), lock_signal(%u), mem_op_type(%u), ca_address(%#llx)",
              lock_signal, mem_op_type, ca_address);
 
@@ -101,7 +104,13 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
    {
       access_num ++;
       LOG_ASSERT_ERROR((access_num == 1) || (access_num == 2), "access_num(%u)", access_num);
-      
+
+      // Wake up the sim thread after acquiring the lock
+      if (access_num == 2)
+      {
+         _memory_manager->wakeUpSimThread();
+      }
+
       // LAACCP
       if (_direct_data_valid)
       {
@@ -110,14 +119,6 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
          _direct_data_valid = false;
          return L1_cache_hit;
       }
-
-      // Wake up the sim thread after acquiring the lock
-      if (access_num == 2)
-      {
-         _memory_manager->wakeUpSimThread();
-      }
-
-
 
       pair<bool, Cache::MissType> cache_miss_info = operationPermissibleinL1Cache(mem_component, ca_address, mem_op_type, access_num);
       bool cache_hit = !cache_miss_info.first;
@@ -129,19 +130,19 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
          accessCache(mem_component, mem_op_type, ca_address, offset, data_buf, data_length);
 
-         LOG_PRINT("cache hit! getting cache line info, address(%#llx)", ca_address);
          getCacheLineInfo(mem_component, ca_address, &L1_cache_line_info);
-         LOG_PRINT("incrementing Pvt util, address(%#llx)", ca_address);
+         //LOG_PRINT("incrementing Pvt util, address(%#llx)", ca_address);
          L1_cache_line_info.incrPvtUtil();
-         LOG_PRINT("setting LAT, address(%#llx)", ca_address);
+         //LOG_PRINT("setting LAT, address(%#llx)", ca_address);
          L1_cache_line_info.setLat(Log::getSingleton()->getTimestamp());
          setCacheLineInfo(mem_component, ca_address, &L1_cache_line_info);
-         LOG_PRINT("returning!");
+         //LOG_PRINT("returning!");
+         LOG_PRINT("cache hit! address(%#llx) new pvt_util(%u), new lat(%llu)",
+                   ca_address, L1_cache_line_info.getPvtUtil(), L1_cache_line_info.getLat());
 
          return L1_cache_hit;
       }
-      
-    
+
       LOG_ASSERT_ERROR(access_num == 1, "Should find line in cache on second access");
       // Expect to find address in the L1-I/L1-D cache if there is an UNLOCK signal
       LOG_ASSERT_ERROR(lock_signal != Core::UNLOCK, "Expected to find address(%#lx) in L1 Cache", ca_address);
@@ -153,10 +154,9 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
 
       // Send out a request to the network thread for the cache data
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
-
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
       ShmemMsg shmem_msg(shmem_msg_type, MemComponent::CORE, mem_component,
-                         getTileId(), false, ca_address,
+                         getTileId(), false, ca_address, data_buf, data_length
                          msg_modeled, getL1Cache(mem_component)->getLeastLat(ca_address));
       _memory_manager->sendMsg(getTileId(), shmem_msg);
 
@@ -320,7 +320,7 @@ L1CacheCntlr::handleMsgFromCore(ShmemMsg* shmem_msg)
    IntPtr address = shmem_msg->getAddress();
    // Send msg out to L2 cache
    ShmemMsg send_shmem_msg(shmem_msg->getType(), shmem_msg->getReceiverMemComponent(), MemComponent::L2_CACHE,
-                           shmem_msg->getRequester(), false, address,
+                           shmem_msg->getRequester(), false, address, data_buf, data_length
                            shmem_msg->isModeled());
    tile_id_t receiver = _L2_cache_home_lookup->getHome(address);
    _memory_manager->sendMsg(receiver, send_shmem_msg);
@@ -365,7 +365,8 @@ L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       break;
    }
 
-   if ((shmem_msg_type == ShmemMsg::EX_REP) || (shmem_msg_type == ShmemMsg::SH_REP) || (shmem_msg_type == ShmemMsg::UPGRADE_REP))
+   if ((shmem_msg_type == ShmemMsg::EX_REP) || (shmem_msg_type == ShmemMsg::SH_REP) ||
+       (shmem_msg_type == ShmemMsg::UPGRADE_REP) || (shmem_msg_type == ShmemMsg::WORD_XFER_REP))
    {
       assert(_outstanding_shmem_msg_time <= getShmemPerfModel()->getCurrTime());
       
@@ -416,14 +417,16 @@ L1CacheCntlr::processShRepFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 void
 L1CacheCntlr::processWordXferFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
 {
+   LOG_PRINT("processWordXferFromL2Cache begin");
    IntPtr address = shmem_msg->getAddress();
    Byte* data_buf = shmem_msg->getDataBuf();
 
    assert(address == _outstanding_shmem_msg.getAddress());
    assert(_direct_data_valid == false);
+   LOG_PRINT("copying direct data, address(%#llx)", address);
    memcpy(_direct_data, data_buf, getCacheLineSize());
-   LOG_PRINT("direct data valid made true\n");
    _direct_data_valid = true;
+   LOG_PRINT("processWordXferFromL2Cache end");
 }
 
 void

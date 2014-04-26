@@ -93,6 +93,30 @@ ShmemMsg::ShmemMsg(Type msg_type
                   , tile_id_t requester
                   , bool reply_expected
                   , IntPtr address
+                  , Byte* data_buf
+                  , UInt32 data_length
+                  , bool modeled
+                  , UInt64 least_lat
+                  )
+   : _msg_type(msg_type)
+   , _sender_mem_component(sender_mem_component)
+   , _receiver_mem_component(receiver_mem_component)
+   , _requester(requester)
+   , _reply_expected(reply_expected)
+   , _address(address)
+   , _data_buf(data_buf)
+   , _data_length(data_length)
+   , _modeled(modeled)
+   , _pvt_util(0)
+   , _least_lat(least_lat)
+{}
+
+ShmemMsg::ShmemMsg(Type msg_type
+                  , MemComponent::Type sender_mem_component
+                  , MemComponent::Type receiver_mem_component
+                  , tile_id_t requester
+                  , bool reply_expected
+                  , IntPtr address
                   , bool modeled
                   , UInt32 pvt_util
                   )
@@ -153,6 +177,8 @@ ShmemMsg::clone(const ShmemMsg* shmem_msg)
    _data_buf = shmem_msg->getDataBuf();
    _data_length = shmem_msg->getDataLength();
    _modeled = shmem_msg->isModeled();
+   _pvt_util = shmem_msg->getPvtUtil();
+   _least_lat = shmem_msg->getLeastLat();
 }
 
 ShmemMsg*

@@ -70,6 +70,17 @@ public:
             , tile_id_t requester
             , bool reply_expected
             , IntPtr address
+            , Byte* data_buf
+            , UInt32 data_length
+            , bool modeled
+            , UInt64 least_lat
+            );
+   ShmemMsg(Type msg_type
+            , MemComponent::Type sender_mem_component
+            , MemComponent::Type receiver_mem_component
+            , tile_id_t requester
+            , bool reply_expected
+            , IntPtr address
             , bool modeled
             , UInt32 pvt_util
             );
