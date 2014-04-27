@@ -66,6 +66,7 @@ public:
             , UInt64 least_lat
             );
    ShmemMsg(Type msg_type
+            , Core::lock_signal_t lock_signal
             , MemComponent::Type sender_mem_component
             , MemComponent::Type receiver_mem_component
             , tile_id_t requester
@@ -120,6 +121,7 @@ public:
    bool isModeled() const                             { return _modeled; }
    UInt64 getLeastLat() const                         { return _least_lat; }
    UInt32 getPvtUtil() const                          { return _pvt_util; }
+   Core::lock_signal_t getLockSignal() const          { return _lock_signal; }
 
    void setMsgType(Type msg_type)                     { _msg_type = msg_type; }
    void setDataBuf(Byte* data_buf)                    { _data_buf = data_buf; }
@@ -128,6 +130,7 @@ public:
 
 private:   
    Type _msg_type;
+   Core::lock_signal_t _lock_signal;
    MemComponent::Type _sender_mem_component;
    MemComponent::Type _receiver_mem_component;
    tile_id_t _requester;

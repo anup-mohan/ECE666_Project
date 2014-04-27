@@ -10,7 +10,7 @@
 
 #define TYPE(shmem_req)    (shmem_req->getShmemMsg()->getType())
 #define PCT 4
-#define NUM_TILES 64
+#define NUM_TILES 66
 
 namespace PrL1ShL2MSI
 {
@@ -238,6 +238,7 @@ L2CacheCntlr::handleMsgFromL1Cache(tile_id_t sender, ShmemMsg* shmem_msg)
           LOG_PRINT("setting sharer as PRIVATE, Address(%#lx)", address);
           L2_cache_line_info.setSharerType(sender, ShL2CacheLineInfo::PRIVATE_SHARER); //set Private
        }
+       L2_cache_line_info.setRemoteUtil(sender, 0);
 
        LOG_PRINT("Evicted cache Line ");
        LOG_PRINT("Remote utilization counter = %ld , Private Utilization counter = %ld",
@@ -257,6 +258,7 @@ L2CacheCntlr::handleMsgFromL1Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       }
       else // (L2_cache_line_info.getCachingComponent() == shmem_msg->getSenderMemComponent())
       {
+         LOG_PRINT("here 1");
          // I either find the cache line in the evicted_cache_line_map or in the L2 cache
          switch (shmem_msg_type)
          {
@@ -565,17 +567,6 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
                      L2_cache_line_info.setRemoteUtil((tile_id_t)i,0);
                }
 
-               LOG_PRINT("*** EX_REQ. core %u is REMOTE sharer. writing data to cacheline. address(%#llx)", requester, address);
-
-               // write data directly into L2 cache
-               _L2_cache->accessCacheLine(address + shmem_req->getShmemMsg()->getOffset(), Cache::STORE, shmem_req->getShmemMsg()->getDataBuf(), shmem_req->getShmemMsg()->getDataLength());
-               // send empty reply back to L1
-               ShmemMsg shmem_msg(ShmemMsg::EMPTY_REP, MemComponent::L2_CACHE, requester_mem_component,
-                                  requester, false, address, msg_modeled);
-               _memory_manager->sendMsg(requester, shmem_msg);
-
-               //writeCacheLine(address, shmem_req->getShmemMsg()->getDataBuf());
-               //readCacheLineAndSendToL1Cache(ShmemMsg::WORD_XFER_REP, address, MemComponent::L1_DCACHE, data_buf, requester, msg_modeled);
                if (L2_cache_line_info.getLat(requester) >= shmem_req->getShmemMsg()->getLeastLat())
                {
                   L2_cache_line_info.incrRemoteUtil(requester);
@@ -587,6 +578,32 @@ L2CacheCntlr::processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
                   LOG_PRINT("*** remote util reset to 1. address(%#llx)", address);
                }
                L2_cache_line_info.setLat(requester, Log::getSingleton()->getTimestamp());
+
+               if (L2_cache_line_info.getRemoteUtil(requester) == PCT)
+               {
+                  LOG_PRINT("promoting core %u to PRIVATE, address(%#llx)", requester, address);
+                  L2_cache_line_info.setSharerType(requester, ShL2CacheLineInfo::PRIVATE_SHARER);
+
+                  // Set caching component 
+                  L2_cache_line_info.setCachingComponent(MemComponent::L1_DCACHE);
+
+                  // Add the sharer and set that as the owner 
+                  __attribute__((unused)) bool add_result = directory_entry->addSharer(requester);
+                  assert(add_result);
+                  directory_entry->setOwner(requester);
+                  directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::MODIFIED);
+                  readCacheLineAndSendToL1Cache(ShmemMsg::EX_REP, address, MemComponent::L1_DCACHE, data_buf, requester, msg_modeled);
+               }
+               else
+               {
+                  LOG_PRINT("core %u stays as REMOTE. writing data directly in L2, address(%llx)", requester, address);
+                  // write data directly into L2 cache
+                  _L2_cache->accessCacheLine(address + shmem_req->getShmemMsg()->getOffset(), Cache::STORE, shmem_req->getShmemMsg()->getDataBuf(), shmem_req->getShmemMsg()->getDataLength());
+                  // send empty reply back to L1
+                  ShmemMsg shmem_msg(ShmemMsg::EMPTY_REP, MemComponent::L2_CACHE, requester_mem_component,
+                                     requester, false, address, msg_modeled);
+                  _memory_manager->sendMsg(requester, shmem_msg);
+               }
             }
             else // Read the cache-line from the L2 cache and send it to L1
             {
@@ -697,29 +714,45 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             if (L2_cache_line_info.getCachingComponent() != requester_mem_component)
             {
                assert(directory_entry->hasSharer(requester));
+
+               // assert here that if one mem component already has a copy of cache line
+               // that means it must be a PRIVATE sharer!
+               LOG_PRINT("here: core %u must be PRIVATE sharer, address(%#llx)", requester, address);
+               assert(L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::PRIVATE_SHARER);
                
                // LOG_PRINT_WARNING("Address(%#lx) cached first in (%s), then in (%s)",
                //                   address, SPELL_MEMCOMP(L2_cache_line_info.getCachingComponent()),
                //                   SPELL_MEMCOMP(requester_mem_component));
                L2_cache_line_info.setCachingComponent(MemComponent::L1_DCACHE);
               
-               if (msg_modeled && (L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::REMOTE_SHARER))
-               {
-                  LOG_PRINT("*** core %u is REMOTE sharer", requester);
-                  readCacheLineAndSendToL1Cache(ShmemMsg::WORD_XFER_REP, address, requester_mem_component, data_buf, requester, msg_modeled);
-                  if (L2_cache_line_info.getLat(requester) >= shmem_req->getShmemMsg()->getLeastLat())
-                  {
-                     L2_cache_line_info.incrRemoteUtil(requester);
-                     LOG_PRINT("*** remote util incremented to %d", L2_cache_line_info.getRemoteUtil(requester));
-                  }
-                  else
-                  {
-                     L2_cache_line_info.setRemoteUtil(requester,1);
-                     LOG_PRINT("*** remote util reset to 1");
-                  }
-                  L2_cache_line_info.setLat(requester, Log::getSingleton()->getTimestamp());
-               }
-               else // Read the cache-line from the L2 cache and send it to L1
+               //if (msg_modeled && (L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::REMOTE_SHARER))
+               //{
+               //   LOG_PRINT("*** core %u is REMOTE sharer", requester);
+               //   if (L2_cache_line_info.getLat(requester) >= shmem_req->getShmemMsg()->getLeastLat())
+               //   {
+               //      L2_cache_line_info.incrRemoteUtil(requester);
+               //      LOG_PRINT("*** remote util incremented to %d", L2_cache_line_info.getRemoteUtil(requester));
+               //   }
+               //   else
+               //   {
+               //      L2_cache_line_info.setRemoteUtil(requester,1);
+               //      LOG_PRINT("*** remote util reset to 1");
+               //   }
+               //   L2_cache_line_info.setLat(requester, Log::getSingleton()->getTimestamp());
+
+               //   if (L2_cache_line_info.getRemoteUtil(requester) >= PCT)
+               //   {
+               //      LOG_PRINT("promoting core %u to PRIVATE, address(%#llx)", requester, address);
+               //      L2_cache_line_info.setSharerType(requester, ShL2CacheLineInfo::PRIVATE_SHARER);
+               //      readCacheLineAndSendToL1Cache(ShmemMsg::SH_REP, address, requester_mem_component, data_buf, requester, msg_modeled);
+               //   }
+               //   else
+               //   {
+               //      LOG_PRINT("core %u stays as REMOTE, address(%llx)", requester, address);
+               //      readCacheLineAndSendToL1Cache(ShmemMsg::WORD_XFER_REP, address, requester_mem_component, data_buf, requester, msg_modeled);
+               //   }
+               //}
+               //else // Read the cache-line from the L2 cache and send it to L1
                   readCacheLineAndSendToL1Cache(ShmemMsg::SH_REP, address, requester_mem_component, data_buf, requester, msg_modeled);
              
                // set completed to true 
@@ -736,7 +769,6 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             if (msg_modeled && (L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::REMOTE_SHARER))
             {
                LOG_PRINT("*** core %u is REMOTE sharer", requester);
-               readCacheLineAndSendToL1Cache(ShmemMsg::WORD_XFER_REP, address, requester_mem_component, data_buf, requester, msg_modeled);
                if (L2_cache_line_info.getLat(requester) >= shmem_req->getShmemMsg()->getLeastLat())
                {
                   L2_cache_line_info.incrRemoteUtil(requester);
@@ -748,6 +780,46 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
                   LOG_PRINT("*** remote util reset to 1");
                }
                L2_cache_line_info.setLat(requester, Log::getSingleton()->getTimestamp());
+
+               if (L2_cache_line_info.getRemoteUtil(requester) == PCT)
+               {
+                  LOG_PRINT("promoting core %u to PRIVATE, address(%#llx)", requester, address);
+                  L2_cache_line_info.setSharerType(requester, ShL2CacheLineInfo::PRIVATE_SHARER);
+
+                  // Write the cache line info back
+                  // so that if we are unable to add directory entry, next time
+                  // when this method executes again, core is
+                  // seen as PRIVATE sharer
+                  setCacheLineInfo(address, &L2_cache_line_info);
+
+                  // Try to add the sharer to the sharer list
+                  bool add_result = directory_entry->addSharer(requester);
+                  if (add_result == false)
+                  {
+                     // Invalidate one sharer
+                     tile_id_t sharer_id = directory_entry->getOneSharer();
+
+                     // Invalidate the sharer
+                     ShmemMsg shmem_msg(ShmemMsg::INV_REQ, MemComponent::L2_CACHE, requester_mem_component,
+                                        requester, false, address,
+                                        msg_modeled);
+                     _memory_manager->sendMsg(sharer_id, shmem_msg);
+                  }
+                  else // succesfully added the sharer
+                  {
+                     // Read the cache-line from the L2 cache and send it to L1
+                     readCacheLineAndSendToL1Cache(ShmemMsg::SH_REP, address, requester_mem_component, data_buf, requester, msg_modeled);
+                     // set completed to true 
+                     completed = true;
+                  }
+               }
+               else
+               {
+                  LOG_PRINT("core %u stays as REMOTE, address(%llx)", requester, address);
+                  readCacheLineAndSendToL1Cache(ShmemMsg::WORD_XFER_REP, address, requester_mem_component, data_buf, requester, msg_modeled);
+                  // set completed to true 
+                  completed = true;
+               }
             }
             else
             {
@@ -782,7 +854,6 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
             if (msg_modeled && (L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::REMOTE_SHARER))
             {
                LOG_PRINT("*** core %u is REMOTE sharer", requester);
-               readCacheLineAndSendToL1Cache(ShmemMsg::WORD_XFER_REP, address, requester_mem_component, data_buf, requester, msg_modeled);
                if (L2_cache_line_info.getLat(requester) >= shmem_req->getShmemMsg()->getLeastLat())
                {
                   L2_cache_line_info.incrRemoteUtil(requester);
@@ -794,6 +865,29 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
                   LOG_PRINT("*** remote util reset to 1");
                }
                L2_cache_line_info.setLat(requester, Log::getSingleton()->getTimestamp());
+
+               if (L2_cache_line_info.getRemoteUtil(requester) == PCT)
+               {
+                  LOG_PRINT("promoting core %u to PRIVATE, address(%#llx)", requester, address);
+                  L2_cache_line_info.setSharerType(requester, ShL2CacheLineInfo::PRIVATE_SHARER);
+
+                  // Set caching component 
+                  L2_cache_line_info.setCachingComponent(requester_mem_component);
+            
+                  // Modifiy the directory entry contents
+                  __attribute__((unused)) bool add_result = directory_entry->addSharer(requester);
+                  LOG_ASSERT_ERROR(add_result, "Address(%#lx), Requester(%i), State(UNCACHED), Num Sharers(%u)",
+                                   address, requester, directory_entry->getNumSharers());
+                  directory_entry->getDirectoryBlockInfo()->setDState(DirectoryState::SHARED);
+
+                  readCacheLineAndSendToL1Cache(ShmemMsg::SH_REP, address, requester_mem_component, data_buf, requester, msg_modeled);
+               }
+               else
+               {
+                  LOG_PRINT("core %u stays as REMOTE, address(%llx)", requester, address);
+                  readCacheLineAndSendToL1Cache(ShmemMsg::WORD_XFER_REP, address, requester_mem_component, data_buf, requester, msg_modeled);
+               }
+
             }
             else // Read the cache-line from the L2 cache and send it to L1
             {
@@ -871,6 +965,7 @@ L2CacheCntlr::processInvRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem_m
 void
 L2CacheCntlr::processFlushRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem_msg, ShL2CacheLineInfo* L2_cache_line_info)
 {
+   LOG_PRINT("processFlushRepFromL1Cache begin");
    IntPtr address = shmem_msg->getAddress();
 
    DirectoryEntry* directory_entry = L2_cache_line_info->getDirectoryEntry();
@@ -910,6 +1005,7 @@ L2CacheCntlr::processFlushRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem
                       curr_dstate, directory_entry->getNumSharers(), directory_entry->getOwner());
       break;
    }
+   LOG_PRINT("processFlushRepFromL1Cache ends");
 }
 
 void

@@ -29,6 +29,7 @@ L1CacheCntlr::L1CacheCntlr(MemoryManager* memory_manager,
    : _memory_manager(memory_manager)
    , _L2_cache_home_lookup(L2_cache_home_lookup)
    , _direct_data_valid(false)
+   , _remote_data_written(false)
 {
    _direct_data = new Byte(getCacheLineSize());
 
@@ -115,8 +116,15 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       if (_direct_data_valid)
       {
          LOG_PRINT("_direct_data is valid, address(%#llx)", ca_address);
-         memcpy(data_buf, _direct_data, getCacheLineSize());
+         memcpy(data_buf, _direct_data + offset, data_length);
          _direct_data_valid = false;
+         return L1_cache_hit;
+      }
+
+      if (_remote_data_written)
+      {
+         LOG_PRINT("_remote_data_written valid, address(%#llx)", ca_address);
+         _remote_data_written = false;
          return L1_cache_hit;
       }
 
@@ -153,7 +161,7 @@ L1CacheCntlr::processMemOpFromCore(MemComponent::Type mem_component,
       // Send out a request to the network thread for the cache data
       bool msg_modeled = Config::getSingleton()->isApplicationTile(getTileId());
       ShmemMsg::Type shmem_msg_type = getShmemMsgType(mem_op_type);
-      ShmemMsg shmem_msg(shmem_msg_type, MemComponent::CORE, mem_component,
+      ShmemMsg shmem_msg(shmem_msg_type, lock_signal, MemComponent::CORE, mem_component,
                          getTileId(), false, ca_address, offset, data_buf, data_length,
                          msg_modeled, getL1Cache(mem_component)->getLeastLat(ca_address));
       _memory_manager->sendMsg(getTileId(), shmem_msg);
@@ -317,7 +325,7 @@ L1CacheCntlr::handleMsgFromCore(ShmemMsg* shmem_msg)
 
    IntPtr address = shmem_msg->getAddress();
    // Send msg out to L2 cache
-   ShmemMsg send_shmem_msg(shmem_msg->getType(), shmem_msg->getReceiverMemComponent(), MemComponent::L2_CACHE,
+   ShmemMsg send_shmem_msg(shmem_msg->getType(), shmem_msg->getLockSignal(), shmem_msg->getReceiverMemComponent(), MemComponent::L2_CACHE,
                            shmem_msg->getRequester(), false, address, shmem_msg->getOffset(),
                            shmem_msg->getDataBuf(), shmem_msg->getDataLength(), shmem_msg->isModeled(),
                            shmem_msg->getLeastLat());
@@ -352,6 +360,7 @@ L1CacheCntlr::handleMsgFromL2Cache(tile_id_t sender, ShmemMsg* shmem_msg)
       break;
    case ShmemMsg::EMPTY_REP:
       // do nothing
+      _remote_data_written = true;
       break;
    case ShmemMsg::INV_REQ:
       processInvReqFromL2Cache(sender, shmem_msg);

@@ -9,6 +9,7 @@ namespace PrL1ShL2MSI
 
 ShmemMsg::ShmemMsg()
    : _msg_type(INVALID_MSG_TYPE)
+   , _lock_signal(Core::NONE)
    , _sender_mem_component(MemComponent::INVALID)
    , _receiver_mem_component(MemComponent::INVALID)
    , _requester(INVALID_TILE_ID)
@@ -31,6 +32,7 @@ ShmemMsg::ShmemMsg(Type msg_type
                   , bool modeled
                   )
    : _msg_type(msg_type)
+   , _lock_signal(Core::NONE)
    , _sender_mem_component(sender_mem_component)
    , _receiver_mem_component(receiver_mem_component)
    , _requester(requester)
@@ -55,6 +57,7 @@ ShmemMsg::ShmemMsg(Type msg_type
                   , bool modeled
                   )
    : _msg_type(msg_type)
+   , _lock_signal(Core::NONE)
    , _sender_mem_component(sender_mem_component)
    , _receiver_mem_component(receiver_mem_component)
    , _requester(requester)
@@ -78,6 +81,7 @@ ShmemMsg::ShmemMsg(Type msg_type
                   , UInt64 least_lat
                   )
    : _msg_type(msg_type)
+   , _lock_signal(Core::NONE)
    , _sender_mem_component(sender_mem_component)
    , _receiver_mem_component(receiver_mem_component)
    , _requester(requester)
@@ -92,6 +96,7 @@ ShmemMsg::ShmemMsg(Type msg_type
 {}
 
 ShmemMsg::ShmemMsg(Type msg_type
+                  , Core::lock_signal_t lock_signal
                   , MemComponent::Type sender_mem_component
                   , MemComponent::Type receiver_mem_component
                   , tile_id_t requester
@@ -104,6 +109,7 @@ ShmemMsg::ShmemMsg(Type msg_type
                   , UInt64 least_lat
                   )
    : _msg_type(msg_type)
+   , _lock_signal(lock_signal)
    , _sender_mem_component(sender_mem_component)
    , _receiver_mem_component(receiver_mem_component)
    , _requester(requester)
@@ -127,6 +133,7 @@ ShmemMsg::ShmemMsg(Type msg_type
                   , UInt32 pvt_util
                   )
    : _msg_type(msg_type)
+   , _lock_signal(Core::NONE)
    , _sender_mem_component(sender_mem_component)
    , _receiver_mem_component(receiver_mem_component)
    , _requester(requester)
@@ -152,6 +159,7 @@ ShmemMsg::ShmemMsg(Type msg_type
                   , UInt32 pvt_util
                   )
    : _msg_type(msg_type)
+   , _lock_signal(Core::NONE)
    , _sender_mem_component(sender_mem_component)
    , _receiver_mem_component(receiver_mem_component)
    , _requester(requester)
@@ -177,6 +185,7 @@ void
 ShmemMsg::clone(const ShmemMsg* shmem_msg)
 {
    _msg_type = shmem_msg->getType();
+   _lock_signal = shmem_msg->getLockSignal();
    _sender_mem_component = shmem_msg->getSenderMemComponent();
    _receiver_mem_component = shmem_msg->getReceiverMemComponent();
    _requester = shmem_msg->getRequester();
