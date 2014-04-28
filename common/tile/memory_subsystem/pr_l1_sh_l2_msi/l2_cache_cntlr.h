@@ -60,6 +60,8 @@ namespace PrL1ShL2MSI
       CacheHashFn* _L2_cache_hash_fn_obj;
       AddressHomeLookup* _dram_home_lookup;
 
+      std::set<IntPtr> lock_address_set;
+
       // Is enabled?
       bool _enabled;
 
@@ -80,6 +82,7 @@ namespace PrL1ShL2MSI
       void processNullifyReq(ShmemReq* nullify_req, Byte* data_buf);
       // Process Request from L1-I/L1-D caches
       void processExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool first_call = false);
+      void processRdExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool first_call = false);
       void processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool first_call = false);
       void processInvRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem_msg, ShL2CacheLineInfo* L2_cache_line_info);
       void processFlushRepFromL1Cache(tile_id_t sender, const ShmemMsg* shmem_msg, ShL2CacheLineInfo* L2_cache_line_info);
