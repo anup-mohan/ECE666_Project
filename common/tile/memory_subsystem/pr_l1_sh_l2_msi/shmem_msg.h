@@ -3,6 +3,7 @@
 #include "mem_component.h"
 #include "fixed_types.h"
 #include "../shmem_msg.h"
+#include "../../core/core.h"
 
 namespace PrL1ShL2MSI
 {
@@ -16,6 +17,7 @@ public:
       MIN_MSG_TYPE,
       EX_REQ = MIN_MSG_TYPE,
       SH_REQ,
+      RDEX_REQ,
       INV_REQ,
       FLUSH_REQ,
       WB_REQ,
@@ -26,7 +28,7 @@ public:
       FLUSH_REP,
       WB_REP,
       WORD_XFER_REP,
-      EMPTY_REP,
+      DUMMY_REP,
       // Dram requests
       DRAM_FETCH_REQ,
       DRAM_STORE_REQ,

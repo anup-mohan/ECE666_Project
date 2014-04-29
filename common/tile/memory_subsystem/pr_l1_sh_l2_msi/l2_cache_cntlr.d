@@ -35,6 +35,7 @@
  /home/elab/Desktop/Graphite/mit-carbon-Graphite-1222f70/common/tile/memory_subsystem/address_home_lookup.h \
  /home/elab/Desktop/Graphite/mit-carbon-Graphite-1222f70/common/tile/memory_subsystem/pr_l1_sh_l2_msi/shmem_msg.h \
  /home/elab/Desktop/Graphite/mit-carbon-Graphite-1222f70/common/tile/memory_subsystem/pr_l1_sh_l2_msi/../shmem_msg.h \
+ /home/elab/Desktop/Graphite/mit-carbon-Graphite-1222f70/common/tile/memory_subsystem/pr_l1_sh_l2_msi/../../core/core.h \
  /home/elab/Desktop/Graphite/mit-carbon-Graphite-1222f70/common/tile/memory_subsystem/pr_l1_sh_l2_msi/shmem_req.h \
  /home/elab/Desktop/Graphite/mit-carbon-Graphite-1222f70/common/misc/hash_map_list.h \
  /home/elab/Desktop/Graphite/mit-carbon-Graphite-1222f70/common/tile/memory_subsystem/cache/cache_replacement_policy.h \

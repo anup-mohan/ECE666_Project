@@ -238,6 +238,7 @@ ShmemMsg::getModeledLength()
    switch(_msg_type)
    {
    case EX_REQ:
+   case RDEX_REQ:
    case SH_REQ:
    case INV_REQ:
    case FLUSH_REQ:
@@ -246,11 +247,13 @@ ShmemMsg::getModeledLength()
    case INV_REP:
    case DRAM_FETCH_REQ:
       // msg_type + address
-      return (_num_msg_type_bits + _num_physical_address_bits);
+      return (_num_msg_type_bits + _num_physical_address_bits + _data_length*8 );
       
    case EX_REP:
    case SH_REP:
    case FLUSH_REP:
+   case WORD_XFER_REP:
+   case DUMMY_REP:
    case WB_REP:
    case DRAM_FETCH_REP:
    case DRAM_STORE_REQ:
@@ -272,8 +275,8 @@ ShmemMsg::getName(Type type)
       return "INVALID_MSG_TYPE";
    case MIN_MSG_TYPE:
       return "MIN_MSG_TYPE or EX_REQ";
-   //case EX_REQ:
-   //   return "EX_REQ";
+   case RDEX_REQ:
+      return "RDEX_REQ";
    case SH_REQ:
       return "SH_REQ";
    case INV_REQ:
@@ -296,8 +299,8 @@ ShmemMsg::getName(Type type)
       return "WB_REP";
    case WORD_XFER_REP:
       return "WORD_XFER_REP";
-   case EMPTY_REP:
-      return "EMPTY_REP";
+   case DUMMY_REP:
+      return "DUMMY_REP";
    case DRAM_FETCH_REQ:
       return "DRAM_FETCH_REQ";
    case DRAM_STORE_REQ:

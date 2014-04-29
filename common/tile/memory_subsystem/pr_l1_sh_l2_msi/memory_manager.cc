@@ -326,6 +326,7 @@ MemoryManager::sendMsg(tile_id_t receiver, ShmemMsg& shmem_msg)
 
    // Delete the Msg Buf
    delete [] msg_buf;
+   LOG_PRINT("Memman sendMsg executed successfully");
 }
 
 void

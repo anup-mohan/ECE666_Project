@@ -38,6 +38,7 @@ ShL2CacheLineInfo::ShL2CacheLineInfo(IntPtr tag, DirectoryEntry* directory_entry
       _remote_util_vector[i] = 0;
       _lat_vector[i] = 0;
    }
+   _is_lock_variable = false;
 }
 
 ShL2CacheLineInfo::~ShL2CacheLineInfo()

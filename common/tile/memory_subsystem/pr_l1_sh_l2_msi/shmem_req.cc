@@ -10,7 +10,7 @@ ShmemReq::ShmemReq(ShmemMsg* shmem_msg, Time time)
 {
    // Make a local copy of the shmem_msg
    _shmem_msg = new ShmemMsg(shmem_msg);
-   LOG_ASSERT_ERROR(shmem_msg->getDataBuf() == NULL, "Shmem Reqs should not have data payloads");
+   //LOG_ASSERT_ERROR(shmem_msg->getDataBuf() == NULL, "Shmem Reqs should not have data payloads");
 }
 
 ShmemReq::~ShmemReq()

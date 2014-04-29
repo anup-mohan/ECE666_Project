@@ -12,7 +12,7 @@
 #define PCT 4
 #define RCT 4
 #define NUM_TILES 66
-#define MSG_MODELED_DUMMY 0
+#define MSG_MODELED_DUMMY msg_modeled
 
 namespace PrL1ShL2MSI
 {
@@ -593,7 +593,7 @@ L2CacheCntlr::processRdExReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, boo
               LOG_PRINT("address =%llx Set is lock made true,get is lock=%d",address,L2_cache_line_info.getIsLock());
 	     }
 
-            if (msg_modeled && (L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::REMOTE_SHARER) 
+            if (MSG_MODELED_DUMMY && (L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::REMOTE_SHARER) 
                             &&(lock_address_set.find(address) == lock_address_set.end()))
             {
                LOG_PRINT("*** core %u is REMOTE sharer", requester);
@@ -1042,7 +1042,7 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
 	      lock_address_set.insert(address);
 	     }
 
-           if (msg_modeled && (L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::REMOTE_SHARER)
+           if (MSG_MODELED_DUMMY && (L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::REMOTE_SHARER)
                             &&(lock_address_set.find(address) == lock_address_set.end()))
             {
                LOG_PRINT("*** core %u is REMOTE sharer", requester);
@@ -1134,7 +1134,7 @@ L2CacheCntlr::processShReqFromL1Cache(ShmemReq* shmem_req, Byte* data_buf, bool 
 	      lock_address_set.insert(address);
 	     }
 
-             if (msg_modeled && (L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::REMOTE_SHARER) 
+             if (MSG_MODELED_DUMMY && (L2_cache_line_info.getSharerType(requester) == ShL2CacheLineInfo::REMOTE_SHARER) 
                             &&(lock_address_set.find(address) == lock_address_set.end()))
                {
                   LOG_PRINT("*** core %u is REMOTE sharer", requester);

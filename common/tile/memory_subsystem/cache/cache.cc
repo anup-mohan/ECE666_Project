@@ -84,8 +84,9 @@ Cache::~Cache()
 void
 Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32 num_bytes)
 {
-   LOG_PRINT("accessCacheLine: Address(%#lx), AccessType(%s), Num Bytes(%u) start",
-             address, (access_type == 0) ? "LOAD": "STORE", num_bytes);
+   LOG_PRINT("accessCacheLine: Name(%s) Address(%#lx), AccessType(%s), Num Bytes(%u) start",
+             _name.c_str(),address, (access_type == 0) ? "LOAD": "STORE", num_bytes);
+
    assert((buf == NULL) == (num_bytes == 0));
 
    CacheSet* set = getSet(address);
@@ -120,6 +121,10 @@ Cache::accessCacheLine(IntPtr address, AccessType access_type, Byte* buf, UInt32
    //   cache_line_info->setLat(requester, Log::getTimestamp());
    //   
    //}
+   for(UInt32 i=0;i<num_bytes;i++)
+   {
+	LOG_PRINT("Name %s DATA Byte %u R/W =%u \n",_name.c_str(),i,buf[i]);
+   }
 
    LOG_PRINT("accessCacheLine: Address(%#lx), AccessType(%s), Num Bytes(%u) end",
              address, (access_type == 0) ? "LOAD": "STORE", num_bytes);

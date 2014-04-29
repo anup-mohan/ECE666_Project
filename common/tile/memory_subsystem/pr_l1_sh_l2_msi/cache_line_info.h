@@ -39,7 +39,9 @@ public:
    vector<Type> getSharerTypeVector() const
    { return _sharer_type_vector; }
    void setSharerType(tile_id_t tile, Type type)
+ //  { _sharer_type_vector[tile] = PRIVATE_SHARER;}
    { _sharer_type_vector[tile] = type; }
+
 
    vector<UInt32> getRemoteUtilVector() const
    { return _remote_util_vector; }
@@ -49,6 +51,8 @@ public:
    { _remote_util_vector[core_id] = val; }
    void incrRemoteUtil(tile_id_t core_id)
    { _remote_util_vector[core_id]++; }
+   bool getIsLock()
+   { return _is_lock_variable; }
 
    vector<UInt64> getLatVector() const
    { return _lat_vector; }
@@ -56,6 +60,8 @@ public:
    { return _lat_vector[core_id]; }
    void setLat(tile_id_t core_id, UInt64 val)
    { _lat_vector[core_id] =  val; }
+   void setIsLock(bool val)
+   { _is_lock_variable = val;  }
 
    bool getSharerTypeList(vector<Type>& sharer_type_vector);
    bool getRemoteUtilList(vector<UInt32>& remote_util_vector);
@@ -68,6 +74,7 @@ private:
    vector<Type> _sharer_type_vector;
    vector<UInt32> _remote_util_vector;
    vector<UInt64> _lat_vector;
+   bool _is_lock_variable;
 };
 
 }

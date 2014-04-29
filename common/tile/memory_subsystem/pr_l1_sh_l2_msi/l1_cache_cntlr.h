@@ -72,8 +72,9 @@ namespace PrL1ShL2MSI
       AddressHomeLookup* _L2_cache_home_lookup;
 
       // LAACCP
-      Byte* _direct_data;
+      Byte*  _direct_data;
       bool _direct_data_valid;
+      bool _direct_write_valid;
 
       // Outstanding msg info
       Time _outstanding_shmem_msg_time;

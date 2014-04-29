@@ -135,8 +135,12 @@ MemoryManager::outputSummary(ostream& out, const Time& target_completion_time)
 void
 MemoryManager::waitForAppThread()
 {
+   LOG_PRINT("Sim Thread wait started");
    _sim_thread_sem.wait();
+   LOG_PRINT("Sim Thread wait done");
+
    _lock.acquire();
+   LOG_PRINT("acquire done");
 }
 
 void
@@ -157,6 +161,7 @@ void
 MemoryManager::wakeUpSimThread()
 {
    _lock.acquire();
+   LOG_PRINT("Sim Thread signal called");
    _sim_thread_sem.signal();
 }
 
