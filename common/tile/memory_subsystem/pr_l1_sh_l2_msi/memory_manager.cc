@@ -367,7 +367,15 @@ MemoryManager::incrCurrTime(MemComponent::Type mem_component, CachePerfModel::Ac
       break;
 
    case MemComponent::L2_CACHE:
+      if(access_type == CachePerfModel::WORD_XFER)
+      {
+	      Time t1=Time(6);
+	      getShmemPerfModel()->incrCurrTime(t1);
+      }
+      else
+      {
       getShmemPerfModel()->incrCurrTime(_L2_cache_cntlr->getL2Cache()->getPerfModel()->getLatency(access_type));
+      }
       break;
 
    case MemComponent::INVALID:
